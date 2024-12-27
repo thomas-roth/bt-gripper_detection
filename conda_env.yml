@@ -19,7 +19,7 @@ dependencies:
   - c-ares=1.19.1=h5eee18b_0
   - ca-certificates=2024.12.14=hbcca054_0
   - cairo=1.16.0=hb05425b_5
-  - certifi=2024.8.30=pyhd8ed1ab_0
+  - certifi=2024.8.30=py38h06a4308_0
   - charset-normalizer=3.3.2=pyhd3eb1b0_0
   - cuda-cudart=12.1.105=0
   - cuda-cupti=12.1.105=0
@@ -205,7 +205,7 @@ dependencies:
   - tk=8.6.14=h39e8969_0
   - torchaudio=2.4.1=py38_cu121
   - torchtriton=3.0.0=py38
-  - torchvision=0.15.2=cuda118py38h196c800_0
+  - torchvision=0.19.1=py38_cu121
   - typing_extensions=4.11.0=py38h06a4308_0
   - tzdata=2024b=hc8b5060_0
   - urllib3=2.2.3=py38h06a4308_0
