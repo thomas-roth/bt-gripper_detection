@@ -34,7 +34,7 @@ to see more demos and learn about detectron2.
 
 ## Installation
 
-See [installation instructions](https://detectron2.readthedocs.io/tutorials/install.html).
+See [general installation instructions](https://detectron2.readthedocs.io/tutorials/install.html) and [custom installation instructions](CUSTOM_INSTALL_INSTRUCTIONS.md).
 
 ## Getting Started
 
