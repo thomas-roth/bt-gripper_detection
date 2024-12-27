@@ -8,6 +8,7 @@ inference_test_output
 *.json
 *.diff
 *.jpg
+*.jpeg
 !/projects/DensePose/doc/images/*.jpg
 
 # compilation and distribution
