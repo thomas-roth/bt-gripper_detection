@@ -1,0 +1,12 @@
+_BASE_: "../../configs/PascalVOC-Detection/faster_rcnn_R50_FPN.yaml"
+        # C4 has lower accuracy, especially for small objects
+
+OUTPUT_DIR: "/home/temp_store/troth/outputs/gripper_detection"
+
+DATASETS: 
+  TRAIN: ('irl_kitchen_gripper_detection_train',)
+  TEST: ('irl_kitchen_gripper_detection_test',)
+
+TEST:
+  AUG:
+    ENABLED: False
