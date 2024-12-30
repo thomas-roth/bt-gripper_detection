@@ -1,8 +1,7 @@
 import os
-import pickle
-from PIL import Image
-from typing import Dict, List
 import numpy as np
+from xml.etree import ElementTree
+from typing import Dict, List
 
 from detectron2.data.catalog import DatasetCatalog, MetadataCatalog
 from detectron2.structures.boxes import BoxMode
@@ -10,16 +9,6 @@ from detectron2.utils.file_io import PathManager
 
 
 CLASS_NAMES = ["gripper"]
-
-
-def deserialize_anno(robot_data_path: str): # TODO?: change to xml tree parsing
-    with open(robot_data_path, 'rb') as file:
-        return pickle.load(file)
-
-
-# TODO: remove after testing
-tmp_dir = "/home/temp_store/troth/data/kit_irl_real_kitchen/lang/mdt_annotations/04_04_2024-15_53_21_0_17_79_banana_from_right_stove_to_sink_62/signal_dict.pickle"
-robot_data = deserialize_anno(tmp_dir)
 
 
 def load_kitchen_instances(dirname: str, split: str):
@@ -31,7 +20,7 @@ def load_kitchen_instances(dirname: str, split: str):
         split: data split. One of "train", "test"
     """
 
-    # Get file ids (TODO: format = cam-nr_task-instruction_rollout-id_img-id?)
+    # Get file ids (format = timestamp_task_instruction_seq_len_cam_nr_img_nr)
     with PathManager.open(os.path.join(dirname, "file_ids", split + ".txt")) as file:
         file_ids = np.loadtxt(file, dtype=str)
 
@@ -39,21 +28,21 @@ def load_kitchen_instances(dirname: str, split: str):
 
     for file_id in file_ids:
         img_file = os.path.join(dirname, "images", file_id + ".jpeg")
-        anno_file = os.path.join(dirname, "annotations", file_id + ".pickle")
+        anno_file = os.path.join(dirname, "annotations", file_id + ".xml")
 
-        annos = deserialize_anno(anno_file)
-
-        img = Image.open(img_file)
+        with PathManager.open(anno_file) as file:
+            annos_tree = ElementTree.parse(file)
         
         img_info = {
             "file_name": img_file, # full path
-            "height": img.shape[0],
-            "width": img.shape[1],
+            "height": int(annos_tree.find("./size/height").text),
+            "width": int(annos_tree.find("./size/width").text),
             "image_id": file_id,
             "annotations": [{
-                "bbox": [], # TODO: get bbox from annos
-                "bbox_mode": BoxMode.XYXY_ABS, # TODO: check if correct
-                "category_id": CLASS_NAMES.index("gripper") # only one class # TODO: get cls from annos
+                "bbox": [float(annos_tree.find("./object/bndbox").find(corner).text)
+                         for corner in ["xmin", "ymin", "xmax", "ymax"]],
+                "bbox_mode": BoxMode.XYXY_ABS,
+                "category_id": 0, # only one class
             }],
         }
 

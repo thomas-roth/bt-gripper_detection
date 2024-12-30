@@ -1,11 +1,8 @@
-from detectron2.checkpoint.detection_checkpoint import DetectionCheckpointer
-from detectron2.config.config import get_cfg
 from detectron2.engine.defaults import default_argument_parser, default_setup
+from detectron2.config.config import get_cfg
+from detectron2.data.datasets.irl_kitchen_gripper_detection import register_all_irl_kitchen_gripper_detection
 from tools.train_net import Trainer
-
-
-def add_gripper_detection_config(cfg):
-    cfg.merge_from_file("configs/gripper_detection.yaml")
+from detectron2.checkpoint.detection_checkpoint import DetectionCheckpointer
 
 
 def setup_cfg(args):
@@ -14,8 +11,7 @@ def setup_cfg(args):
     """
 
     cfg = get_cfg()
-    add_gripper_detection_config(cfg)
-    cfg.merge_from_file(args.config_file)
+    cfg.merge_from_file("projects/GripperDetection/configs/gripper_detection.yaml")
     cfg.freeze()
     default_setup(cfg, args)
 
@@ -24,6 +20,8 @@ def setup_cfg(args):
 
 def main(args):
     cfg = setup_cfg(args)
+
+    register_all_irl_kitchen_gripper_detection()
 
     if args.eval_only:
         model = Trainer.build_model(cfg)
