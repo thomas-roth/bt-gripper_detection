@@ -14,5 +14,5 @@ DATASETS:
   TEST: ('voc_2007_test',)
 SOLVER:
   STEPS: (12000, 16000)
-  MAX_ITER: 180 #18000  # 17.4 epochs
+  MAX_ITER: 1800 #18000  # 17.4 epochs
   WARMUP_ITERS: 100

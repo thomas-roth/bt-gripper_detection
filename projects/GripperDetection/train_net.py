@@ -1,3 +1,5 @@
+import datetime
+import os
 from detectron2.engine.defaults import default_argument_parser, default_setup
 from detectron2.config.config import get_cfg
 from detectron2.data.datasets.irl_kitchen_gripper_detection import register_all_irl_kitchen_gripper_detection
@@ -12,6 +14,10 @@ def setup_cfg(args):
 
     cfg = get_cfg()
     cfg.merge_from_file("projects/GripperDetection/configs/gripper_detection.yaml")
+
+    cfg.OUTPUT_DIR = cfg.OUTPUT_DIR + f"/models/{datetime.datetime.now().strftime('%Y_%m_%d-%H_%M_%S')}"
+    os.makedirs(cfg.OUTPUT_DIR)
+
     cfg.freeze()
     default_setup(cfg, args)
 

@@ -9,50 +9,56 @@ from detectron2.utils.file_io import PathManager
 
 
 CLASS_NAMES = ["gripper"]
+NUM_SEQUNECES = 242
 
 
-def load_kitchen_instances(dirname: str, split: str):
+def load_kitchen_instances(file_ids: list, dirname: str):
     """
     Load kitchen detection annotations to Detectron2 format.
     
     Args:
-        dirname: name of data directory. Contains subdirs "file_ids", "annotations", "images"
-        split: data split. One of "train", "test"
+        file_ids: list of file ids (timestamp + sequence task + sequence length)
+        dirname: name of data directory. Contains subdirs "images", "annotations"
     """
-
-    # Get file ids (format = timestamp_task_instruction_seq_len_cam_nr_img_nr)
-    with PathManager.open(os.path.join(dirname, "file_ids", split + ".txt")) as file:
-        file_ids = np.loadtxt(file, dtype=str)
 
     data : List[Dict] = []
 
     for file_id in file_ids:
         img_file = os.path.join(dirname, "images", file_id + ".jpeg")
-        anno_file = os.path.join(dirname, "annotations", file_id + ".xml")
 
-        with PathManager.open(anno_file) as file:
-            annos_tree = ElementTree.parse(file)
+        is_seq_annotated = os.path.isdir(os.path.join(dirname, "annotations")) 
+
+        if is_seq_annotated:
+            anno_file = os.path.join(dirname, "annotations", file_id + ".xml")
+            with PathManager.open(anno_file) as file:
+                annos_tree = ElementTree.parse(file)
         
-        img_info = {
-            "file_name": img_file, # full path
-            "height": int(annos_tree.find("./size/height").text),
-            "width": int(annos_tree.find("./size/width").text),
-            "image_id": file_id,
-            "annotations": [{
-                "bbox": [float(annos_tree.find("./object/bndbox").find(corner).text)
-                         for corner in ["xmin", "ymin", "xmax", "ymax"]],
-                "bbox_mode": BoxMode.XYXY_ABS,
-                "category_id": 0, # only one class
-            }],
-        }
+            img_info = {
+                "file_name": img_file, # full path
+                "height": int(annos_tree.find("./size/height").text),
+                "width": int(annos_tree.find("./size/width").text),
+                "image_id": file_id,
+                "annotations": [{
+                    "bbox": [float(annos_tree.find("./object/bndbox").find(corner).text)
+                            for corner in ["xmin", "ymin", "xmax", "ymax"]],
+                    "bbox_mode": BoxMode.XYXY_ABS,
+                    "category_id": 0, # only one class
+                }],
+            }
+        else:
+            img_info = {
+                "file_name": img_file, # full path
+                "image_id": file_id,
+                # TODO: height & width needed?
+            }            
 
         data.append(img_info)
 
     return data
 
 
-def register_irl_kitchen_gripper_detection(name, dirname, split):
-    DatasetCatalog.register(name, lambda: load_kitchen_instances(dirname, split))
+def register_irl_kitchen_gripper_detection(name: str, file_ids: list, dirname: str, split: str):
+    DatasetCatalog.register(name, lambda: load_kitchen_instances(file_ids, dirname))
     MetadataCatalog.get(name).set(
         thing_classes=list(CLASS_NAMES), dirname=dirname, split=split
     )
@@ -60,10 +66,17 @@ def register_irl_kitchen_gripper_detection(name, dirname, split):
 
 
 def register_all_irl_kitchen_gripper_detection():
-    SPLITS = [
-        ("irl_kitchen_gripper_detection_train", "/home/temp_store/troth/data/irl_kitchen_gripper_detection/cam_1", "train"), # TODO?: extract cam number from dirname (to cfg / fct args)
-        ("irl_kitchen_gripper_detection_test", "/home/temp_store/troth/data/irl_kitchen_gripper_detection/cam_1", "test"),
-    ]
+    cam_1_path = "/home/temp_store/troth/data/irl_kitchen_gripper_detection/cam_1"
+    cam_2_path = "/home/temp_store/troth/data/irl_kitchen_gripper_detection/cam_2"
 
-    for name, dirname, split in SPLITS:
-        register_irl_kitchen_gripper_detection(name, dirname, split)
+    file_ids = []
+    subdirnames = []
+    for i in range(NUM_SEQUNECES):
+        with PathManager.open(f"/home/temp_store/troth/data/irl_kitchen_gripper_detection/file_ids/cam_1_seq_{i:03d}.txt") as file:
+            file_ids.append(np.loadtxt(file, dtype=str))
+            subdirnames.append(str.join("_", file_ids[-1][0].split("_")[:-4]))
+
+    SPLITS = [(f"irl_kitchen_gripper_detection_cam_1_seq_{i:03d}", file_ids[i], f"{cam_1_path}/{subdirnames[i]}", f"cam_1_seq_{i:03d}") for i in range(NUM_SEQUNECES)]
+
+    for name, file_ids, dirname, split in SPLITS:
+        register_irl_kitchen_gripper_detection(name, file_ids, dirname, split)
