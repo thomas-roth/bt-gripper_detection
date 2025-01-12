@@ -19,7 +19,6 @@ TRAINED_MODEL_PATH_CAM_2 = "/home/temp_store/troth/outputs/gripper_detection/mod
 NUM_SEQUNECES = 242
 
 
-# TODO: look at other trajs of cam_1: good enough or need to train again?
 # TODO: experiment with RDP_TOLERANCE (0.05 too low?)
 # TODO: eval all sequences
 # TODO: write script to generate & fill folder structure for VLM

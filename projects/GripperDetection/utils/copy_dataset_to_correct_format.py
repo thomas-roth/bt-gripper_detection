@@ -11,7 +11,7 @@ DEST = "/home/temp_store/troth/data/irl_kitchen_gripper_detection"
 NUM_SEQUNECES = 242
 
 
-for root_seq, dirs_seq, files_seq in tqdm(os.walk(SOURCE), total=NUM_SEQUNECES, desc="Copying images"):
+for root_seq, dirs_seq, _ in tqdm(os.walk(SOURCE), total=NUM_SEQUNECES, desc="Copying images"):
     dirs_seq = natsorted(dirs_seq)
     for i, dir_seq in enumerate(dirs_seq):
         for root_cam, dirs_cam, files_cam in os.walk(os.path.join(root_seq, dir_seq)):
@@ -28,7 +28,7 @@ for root_seq, dirs_seq, files_seq in tqdm(os.walk(SOURCE), total=NUM_SEQUNECES, 
             dirs_cam = natsorted(dirs_cam)
             for dir_cam in dirs_cam:
                     with open(os.path.join(DEST, f"file_ids/{dir_cam}_seq_{i:03d}.txt"), "w") as file_ids_file:
-                        for root_img, dirs_img, files_img in os.walk(os.path.join(root_cam, dir_cam)):
+                        for root_img, _, files_img in os.walk(os.path.join(root_cam, dir_cam)):
                             files_img = natsorted(files_img)
                             for file_img in files_img:
                                 if file_img.endswith(".jpeg"):
