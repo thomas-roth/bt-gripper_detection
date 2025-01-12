@@ -71,74 +71,90 @@ def _merge_bbox_instances(instances):
     return instances
 
 
-def eval_sequence(cfg, model, sequence: str, save_bboxes=True, save_trajs=True, only_build_first_traj=False):
-    test_data_loader = build_detection_test_loader(cfg, sequence, collate_fn=lambda x: x[0]) # collate_fn to "unwrap" batch (batch_size=1)
-
-    torch.cuda.empty_cache()
-    with torch.no_grad():
-        outputs = model(test_data_loader)
+def eval_sequence(cfg, model, sequence: str, save_bboxes=True, save_trajs=True, hide_past_traj=True):
+    test_data_loader = build_detection_test_loader(cfg, sequence)
 
     seq_name = str.join('_', str(test_data_loader.dataset.__getitem__(0)['image_id']).split('_')[:-4])
 
+    outputs = []
+    with torch.no_grad():
+        for input in test_data_loader:
+            output = model(input)[0]
+            outputs.append(output)
+
+            torch.cuda.empty_cache()
+    
     if save_bboxes:
         os.makedirs(cfg.OUTPUT_DIR + f"/eval/{seq_name}/bboxes", exist_ok=True)
 
-        for i, (input, output) in tqdm(enumerate(zip(test_data_loader, outputs)), total=len(test_data_loader), desc="Visualizing images"):
+        for i, (batched_input, output) in tqdm(enumerate(zip(test_data_loader, outputs)), total=len(test_data_loader), desc="Visualizing images"):
             if len(output["instances"].pred_boxes.tensor) == 0:
                 continue # skip frame if no gripper detected
+
+            input = batched_input[0] # only one image in batch
 
             output["instances"] = _merge_bbox_instances(output["instances"])
 
             input_img = cv2.imread(input["file_name"])
             visualizer = Visualizer(input_img[:, :, ::-1], MetadataCatalog.get(cfg.DATASETS.TRAIN[0]), scale=1.0)
             input_img_with_bboxes = visualizer.draw_instance_predictions(output["instances"].to("cpu"))
+
             cv2.imwrite(cfg.OUTPUT_DIR + f"/eval/{seq_name}/bboxes/{input['image_id']}_bbox_{i:02d}.jpg", input_img_with_bboxes.get_image()[:, :, ::-1])
     
     if save_trajs:
         os.makedirs(cfg.OUTPUT_DIR + f"/eval/{seq_name}/trajs", exist_ok=True)
         total_no_gripper_found_counter = 0
 
-        for i, input in tqdm(enumerate(test_data_loader), total=1 if only_build_first_traj else len(test_data_loader), desc="Building trajectories"):
+        for i, batched_input in tqdm(enumerate(test_data_loader), total=len(test_data_loader), desc="Building trajectories"):
+            input = batched_input[0] # only one image in batch
+
             input_img = cv2.imread(input["file_name"])
-            anno_file_path = cfg.ROBOT_STATE_ANNOTATIONS_PATH + f"/{seq_name}.pickle" # remove cam & img nr from image_id
-            img_with_trajectory, no_gripper_found_counter = build_trajectory(input_img, outputs, anno_file_path=anno_file_path, start_index=i)
-            if i == 0:
-                total_no_gripper_found_counter = no_gripper_found_counter
+            anno_file_path = cfg.ROBOT_STATE_ANNOTATIONS_PATH + f"/{seq_name}.pickle"
+            if hide_past_traj:
+                img_with_trajectory, no_gripper_found_counter = build_trajectory(input_img, outputs, anno_file_path, start_index=i)
+            else:
+                img_with_trajectory, no_gripper_found_counter = build_trajectory(input_img, outputs, anno_file_path)
 
             cv2.imwrite(cfg.OUTPUT_DIR + f"/eval/{seq_name}/trajs/{input['image_id']}_traj_{i:02d}.jpg", img_with_trajectory)
-            
-            if only_build_first_traj:
-                break
+
+            if i == 0:
+                total_no_gripper_found_counter = no_gripper_found_counter
         
         if total_no_gripper_found_counter > 0:
-            print(f"Warning: no gripper detected in {1 if only_build_first_traj else total_no_gripper_found_counter}/{1 if only_build_first_traj else len(test_data_loader)} frames in sequence {seq_name}")
+            print(f"Warning: no gripper detected in {total_no_gripper_found_counter}/{len(test_data_loader)} frames in sequence {seq_name}")
 
 
-def main(args, save_bboxes=True, save_trajs=True, only_build_first_traj=False, sequence=""):
+def main(args, save_bboxes=True, save_trajs=True, hide_past_traj=True, sequence=None):
     cfg = setup_cfg(args)
-
-    model_cam_1 = build_model(cfg)
-    DetectionCheckpointer(model_cam_1).load(TRAINED_MODEL_PATH_CAM_1)
-    model_cam_1.eval()
-
-    model_cam_2 = build_model(cfg)
-    DetectionCheckpointer(model_cam_2).load(TRAINED_MODEL_PATH_CAM_2)
-    model_cam_2.eval()
 
     register_all_irl_kitchen_gripper_detection()
 
-    if sequence == "":
+    if sequence == None:
         # eval all sequences
-        for i in tqdm(range(NUM_SEQUNECES), total=NUM_SEQUNECES, desc="Evaluating sequences"):
-            eval_sequence(cfg, model_cam_1, f"irl_kitchen_gripper_detection_cam_1_seq_{i:03d}", save_bboxes=save_bboxes,
-                          save_trajs=save_trajs, only_build_first_traj=only_build_first_traj)
-            eval_sequence(cfg, model_cam_2, f"irl_kitchen_gripper_detection_cam_2_seq_{i:03d}", save_bboxes=save_bboxes,
-                          save_trajs=save_trajs, only_build_first_traj=only_build_first_traj)
+
+        models = []
+        for cam_id in [1, 2]:
+            model = build_model(cfg)
+            DetectionCheckpointer(model).load(TRAINED_MODEL_PATH_CAM_1 if cam_id == 1 else TRAINED_MODEL_PATH_CAM_2)
+            model.eval()
+            models.append(model)
+
+            for i in tqdm(range(NUM_SEQUNECES), total=NUM_SEQUNECES, desc=f"Evaluating sequences for cam_{cam_id}"):
+                curr_sequence = f"irl_kitchen_gripper_detection_cam_{cam_id}_seq_{i:03d}"
+                eval_sequence(cfg, models[cam_id-1], curr_sequence, save_bboxes, save_trajs, hide_past_traj)
     else:
-        eval_sequence(cfg, model_cam_1, sequence=sequence, save_bboxes=save_bboxes,
-                      save_trajs=save_trajs, only_build_first_traj=only_build_first_traj)
+        # eval single sequence
+
+        assert type(sequence) == str
+
+        model = build_model(cfg)
+        DetectionCheckpointer(model).load(TRAINED_MODEL_PATH_CAM_1 if "cam_1" in sequence else TRAINED_MODEL_PATH_CAM_2)
+        model.eval()
+
+        eval_sequence(cfg, model, sequence, save_bboxes, save_trajs, hide_past_traj)
 
 
 if __name__ == "__main__":
     args = default_argument_parser().parse_args()
-    main(args, save_bboxes=False, save_trajs=True, only_build_first_traj=False, sequence="irl_kitchen_gripper_detection_cam_1_seq_047")
+    main(args, save_bboxes=False, save_trajs=True, hide_past_traj=True)
+    #main(args, save_bboxes=True, save_trajs=True, hide_past_traj=True, sequence="irl_kitchen_gripper_detection_cam_1_seq_000")
