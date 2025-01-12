@@ -3,9 +3,13 @@ _BASE_: "/home/i53/student/troth/code/bt/detectron2/configs/PascalVOC-Detection/
 
 OUTPUT_DIR: "/home/temp_store/troth/outputs/gripper_detection"
 
-DATASETS: 
-  TRAIN: ("irl_kitchen_gripper_detection_cam_1_seq_000", "irl_kitchen_gripper_detection_cam_1_seq_049")
-  TEST: ("irl_kitchen_gripper_detection_cam_1_seq_000",)
+DATASETS:
+  # cam_1
+  #TRAIN: ("irl_kitchen_gripper_detection_cam_1_seq_000", "irl_kitchen_gripper_detection_cam_1_seq_049")
+  #TEST: ("irl_kitchen_gripper_detection_cam_1_seq_000",)
+  # cam_2
+  TRAIN: ("irl_kitchen_gripper_detection_cam_2_seq_000", "irl_kitchen_gripper_detection_cam_2_seq_068")
+  TEST: ("irl_kitchen_gripper_detection_cam_2_seq_000",)
 
 INPUT:
   MIN_SIZE_TRAIN: (125,250,375,500)

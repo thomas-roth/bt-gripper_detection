@@ -36,7 +36,7 @@ def _get_nearest_non_none_end_effector_center_point(end_effector_center_points: 
         if i_after in range(len(end_effector_center_points)) and not np.array_equal(end_effector_center_points[i_after], np.array((-1, -1))):
             return end_effector_center_points[i_after]
     
-    return None
+    return np.array((-1, -1))
 
 
 def draw_trajectory(img, end_effector_center_points: list, anno_file_path: str, start_index: int):
@@ -51,6 +51,9 @@ def draw_trajectory(img, end_effector_center_points: list, anno_file_path: str, 
     for i in range(len(end_effector_center_points)):        
         if np.array_equal(end_effector_center_points[i], np.array((-1, -1))):
             end_effector_center_points[i] = _get_nearest_non_none_end_effector_center_point(end_effector_center_points, i_none=i)
+            if np.array_equal(end_effector_center_points[i], np.array((-1, -1))):
+                # no end effector center point found, skip drawing
+                continue
 
     # simpilfy trajectory using Ramer-Douglas-Peucker algorithm
     mask = rdp(end_effector_center_points, epsilon=RDP_TOLERANCE, return_mask=True)
