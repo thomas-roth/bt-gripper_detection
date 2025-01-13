@@ -1,3 +1,4 @@
+from collections import defaultdict
 import pickle
 import cv2
 import numpy as np
@@ -60,6 +61,9 @@ def draw_trajectory(img, end_effector_center_points: list, anno_file_path: str, 
     end_effector_center_points = end_effector_center_points[mask]
     cur_gripper_width = np.array(cur_gripper_width)[mask]
 
+    gripper_keypoints = defaultdict(list)
+    gripper_keypoints["traj"] = [center_point.tolist() for center_point in end_effector_center_points]
+
     for i in range(len(end_effector_center_points) - 1):
         color = (0, 0, round((i+1) / len(end_effector_center_points) * 255)) # BGR
         cv2.line(img, end_effector_center_points[i], end_effector_center_points[i+1], color=color, thickness=2)
@@ -67,17 +71,19 @@ def draw_trajectory(img, end_effector_center_points: list, anno_file_path: str, 
         if gripper_open and cur_gripper_width[i] < THRESHOLD_CLOSE_GRIPPER:
             # close gripper => draw green circle
             cv2.circle(img, end_effector_center_points[i], 5, color=(0, 255, 0), thickness=2) # BGR
+            gripper_keypoints["close"].append(end_effector_center_points[i].tolist())
             gripper_open = False
         elif not gripper_open and cur_gripper_width[i] >= THRESHOLD_CLOSE_GRIPPER:
             # open gripper => draw blue circle
             cv2.circle(img, end_effector_center_points[i], 5, color=(255, 0, 0), thickness=2) # BGR
             gripper_open = True
+            gripper_keypoints["open"].append(end_effector_center_points[i].tolist())
 
-    return img
+    return img, gripper_keypoints
 
 
 def build_trajectory(input_img, rollout_imgs: list, anno_file_path: str, start_index=0):
     end_effector_center_points, no_gripper_found_counter = get_end_effector_center_points(rollout_imgs, start_index)
-    img_with_trajectory = draw_trajectory(input_img, end_effector_center_points, anno_file_path, start_index)
+    img_with_trajectory, gripper_keypoints = draw_trajectory(input_img, end_effector_center_points, anno_file_path, start_index)
 
-    return img_with_trajectory, no_gripper_found_counter
+    return img_with_trajectory, no_gripper_found_counter, gripper_keypoints
