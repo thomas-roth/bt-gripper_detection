@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import cv2
 import torch
 from tqdm import tqdm
@@ -13,17 +14,13 @@ from detectron2.engine.defaults import default_argument_parser, default_setup
 from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.utils.visualizer import Visualizer
-from projects.GripperDetection.build_trajs import build_trajectory
+from projects.GripperDetection.utils.build_trajs import build_trajectory
 from projects.GripperDetection.utils.format_dataset_for_qwen2_vl import build_dataset_entry, build_message_content
 
 
-TRAINED_MODEL_PATH_CAM_1 = "/home/temp_store/troth/outputs/gripper_detection/models/2025_01_05-19_47_58/model_final.pth"
+TRAINED_MODEL_PATH_CAM_1 = "/home/temp_store/troth/outputs/gripper_detection/models/2025_01_13-16_58_35/model_final.pth"
 TRAINED_MODEL_PATH_CAM_2 = "/home/temp_store/troth/outputs/gripper_detection/models/2025_01_12-13_57_08/model_final.pth"
 NUM_SEQUNECES = 242
-
-
-# TODO: experiment with RDP_TOLERANCE (0.05 too low?)
-# TODO: create dataset dir & copy dataset + images to it
 
 
 def setup_cfg(args):
@@ -104,23 +101,31 @@ def _build_and_save_trajs(cfg, test_data_loader, outputs, hide_past_traj):
 
 
 def _build_dataset(cfg, test_data_loader, outputs, dataset):
+    assert type(dataset) == list
+
     seq_name = str.join('_', str(test_data_loader.dataset.__getitem__(0)['image_id']).split('_')[:-4])
 
-    dataset_entry_images = [image[0]["file_name"] for image in test_data_loader]
-
-    for batched_input in test_data_loader:
+    dataset_entry_images = []
+    for i, batched_input in enumerate(test_data_loader):
         input = batched_input[0] # only one image in batch
 
-        input_img = cv2.imread(input["file_name"])
-        anno_file_path = cfg.ROBOT_STATE_ANNOTATIONS_PATH + f"/{seq_name}.pickle"
-        _, _, gripper_keypoints = build_trajectory(input_img, outputs, anno_file_path)
+        cam_id = 1 if "cam_1" in input["image_id"] else 2
+        dest_path_dir = cfg.OUTPUT_DIR + f"/dataset/images/cam_{cam_id}/{seq_name}"
+        os.makedirs(dest_path_dir, exist_ok=True)
+        dest_path_img = os.path.join(dest_path_dir, f"{input['image_id']}.jpg")
 
-        dataset_entry_message = build_message_content(gripper_keypoints["traj"], input_img.shape[0], input_img.shape[1], gripper_keypoints["open"],
-                                                gripper_keypoints["close"])
-        
-        break
+        # copy images to dataset dir & save paths
+        shutil.copy(input["file_name"], dest_path_img)
+        dataset_entry_images.append(dest_path_img)
 
-    assert type(dataset) == list
+        if i == 0:
+            # build message content
+            input_img = cv2.imread(dest_path_img)
+            anno_file_path = cfg.ROBOT_STATE_ANNOTATIONS_PATH + f"/{seq_name}.pickle"
+            _, _, gripper_keypoints = build_trajectory(input_img, outputs, anno_file_path)
+
+            dataset_entry_message = build_message_content(gripper_keypoints["traj"], input_img.shape[0], input_img.shape[1], gripper_keypoints["open"],
+                                                          gripper_keypoints["close"])
 
     dataset.append(build_dataset_entry(dataset_entry_images, dataset_entry_message))
 
@@ -171,13 +176,15 @@ def main(args, save_bboxes=False, save_trajs=False, hide_past_traj=True, build_d
                 curr_sequence = f"irl_kitchen_gripper_detection_cam_{cam_id}_seq_{i:03d}"
                 
                 if build_dataset:
-                    dataset = eval_sequence(cfg, models[cam_id-1], sequence=curr_sequence, build_dataset=build_dataset, dataset=dataset)
+                    dataset = eval_sequence(cfg, models[cam_id-1], sequence=curr_sequence, save_bboxes=save_bboxes, save_trajs=save_trajs,
+                                            hide_past_traj=hide_past_traj, build_dataset=build_dataset, dataset=dataset)
                 else:
-                    eval_sequence(cfg, models[cam_id-1], sequence=curr_sequence, save_bboxes=save_bboxes, save_trajs=save_trajs, hide_past_traj=hide_past_traj)
+                    eval_sequence(cfg, models[cam_id-1], sequence=curr_sequence, save_bboxes=save_bboxes, save_trajs=save_trajs,
+                                  hide_past_traj=hide_past_traj)
         
         if build_dataset:
-            with open(cfg.OUTPUT_DIR + "/eval/dataset.json", "w") as dataset_file:
-                json.dump(dataset, dataset_file)
+            with open(cfg.OUTPUT_DIR + "/dataset/qwen2vl_dataset.json", "w") as dataset_file:
+                json.dump(dataset, dataset_file, indent=4)
     else:
         # eval single sequence
 
@@ -193,14 +200,14 @@ def main(args, save_bboxes=False, save_trajs=False, hide_past_traj=True, build_d
         if build_dataset:
             dataset = eval_sequence(cfg, model, sequence, save_bboxes, save_trajs, hide_past_traj, build_dataset, dataset)
 
-            with(open(cfg.OUTPUT_DIR + "/eval/dataset.json", "w")) as dataset_file:
-                json.dump(dataset, dataset_file)
+            with(open(cfg.OUTPUT_DIR + "/dataset/qwen2vl_dataset.json", "w")) as dataset_file:
+                json.dump(dataset, dataset_file, indent=4)
         else:
             eval_sequence(cfg, model, sequence, save_bboxes, save_trajs, hide_past_traj)
 
 
 if __name__ == "__main__":
     args = default_argument_parser().parse_args()
-    #main(args, save_bboxes=False, save_trajs=True, hide_past_traj=True)
-    #main(args, save_bboxes=True, save_trajs=True, hide_past_traj=True, sequence="irl_kitchen_gripper_detection_cam_1_seq_000")
-    main(args, build_dataset=True)
+    main(args, save_bboxes=False, save_trajs=True, hide_past_traj=False)
+    #main(args, save_bboxes=True, save_trajs=True, hide_past_traj=True, build_dataset=True, sequence="irl_kitchen_gripper_detection_cam_1_seq_050")
+    #main(args, save_trajs=True, hide_past_traj=True, build_dataset=True)

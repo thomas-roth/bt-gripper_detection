@@ -51,7 +51,6 @@ def load_kitchen_instances(file_ids: list, dirname: str):
             img_info = {
                 "file_name": img_file, # full path
                 "image_id": file_id,
-                # TODO: height & width needed?
             }            
 
         data.append(img_info)

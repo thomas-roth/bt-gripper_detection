@@ -7,7 +7,9 @@ from rdp import rdp
 
 THRESHOLD_CLOSE_GRIPPER = 0.05 # minimum width of gripper to be considered open
 OFFSET_GRIPPER_WIDTH = 4 # annotations are desired gripper width, they are "faster" than the images => prepend list with nans
-RDP_TOLERANCE = 0.05
+RDP_TOLERANCE = 5
+
+# TODO: fix traj lines being "glued" to gripper & moving bc of rdp (first iteration of rdp needs to be stored & used for all following iterations)
 
 
 def get_end_effector_center_points(rollout_imgs: list, start_index: int):
