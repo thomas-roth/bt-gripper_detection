@@ -1,4 +1,5 @@
 import json
+import os
 
 
 def build_output_message(traj_points: list, img_width, img_height, open_gripper_points: list, close_gripper_points: list):
@@ -38,6 +39,10 @@ def build_dataset_entry(image, prompt: str, output_message: str):
 
 
 def save_dataset(general_output_dir, dataset, curr_datetime):
+    if not os.path.exists(f"{general_output_dir}/dataset/{curr_datetime}"):
+        # all sequences have been removed due to no gripper detected too often
+        return
+
     with(open(f"{general_output_dir}/dataset/{curr_datetime}/dataset.json", "w")) as dataset_file:
         json.dump(dataset, dataset_file, indent=2)
 

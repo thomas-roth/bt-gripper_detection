@@ -31,5 +31,9 @@ for root_eval, dirs_seq, _ in os.walk(SOURCE):
         gif_frames_cam_2 = [Image.open(img).quantize(colors=256, method=2, kmeans=1) for img in imgs_cam_2]
 
         os.makedirs(os.path.join(DEST), exist_ok=True)
-        gif_frames_cam_1[0].save(os.path.join(DEST, f"{dir_seq}_cam_1.gif"), save_all=True, append_images=gif_frames_cam_1[1:], duration=200, loop=0)
-        gif_frames_cam_2[0].save(os.path.join(DEST, f"{dir_seq}_cam_2.gif"), save_all=True, append_images=gif_frames_cam_2[1:], duration=200, loop=0)
+        if len(gif_frames_cam_1) >= 1:
+            # cam_1 of sequence wasn't skipped
+            gif_frames_cam_1[0].save(os.path.join(DEST, f"{dir_seq}_cam_1.gif"), save_all=True, append_images=gif_frames_cam_1[1:], duration=200, loop=0)
+        if len(gif_frames_cam_2) >= 1:
+            # cam_2 of sequence wasn't skipped
+            gif_frames_cam_2[0].save(os.path.join(DEST, f"{dir_seq}_cam_2.gif"), save_all=True, append_images=gif_frames_cam_2[1:], duration=200, loop=0)
