@@ -1,5 +1,4 @@
 import datetime
-import json
 import os
 import pickle
 import shutil
@@ -18,6 +17,7 @@ from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.utils.visualizer import Visualizer
 from projects.GripperDetection.utils.build_trajs import build_trajectory
 from projects.GripperDetection.utils.build_qwen2vl_dataset import build_dataset_entry, build_output_message, save_dataset
+from projects.GripperDetection.utils.gen_traj_gifs import gen_traj_gifs
 
 
 TRAINED_MODEL_PATH_CAM_1 = "/home/temp_store/troth/outputs/gripper_detection/models/2025_01_13-16_58_35/model_final.pth"
@@ -111,7 +111,7 @@ def _build_dataset(cfg, test_data_loader, outputs, dataset_for_seq, curr_datetim
     cam_id = 1 if "cam_1" in first_input["image_id"] else 2
 
     input_img = cv2.imread(first_input["file_name"])
-    anno_file_path = cfg.ROBOT_STATE_ANNOTATIONS_PATH + f"/{seq_name}.pickle"
+    anno_file_path = ROBOT_STATE_ANNOTATIONS_PATH + f"/{seq_name}.pickle"
     _, gripper_keypoints, no_gripper_detected = build_trajectory(input_img, outputs, anno_file_path)
     if no_gripper_detected:
         print(colored(f"Did not build dataset entries for cam_{cam_id} of \"{seq_name}\"", "yellow"))
@@ -188,6 +188,9 @@ def main(args, save_bboxes=False, save_trajs=False, hide_past_traj=True, filter_
                 else:
                     eval_sequence(cfg, models[cam_id-1], curr_sequence, save_bboxes, save_trajs, hide_past_traj, filter_no_gripper_detected)
         
+        if save_trajs:
+            gen_traj_gifs()
+        
         if build_dataset:
             save_dataset(cfg.OUTPUT_DIR, dataset, curr_datetime)
     else:
@@ -213,5 +216,6 @@ def main(args, save_bboxes=False, save_trajs=False, hide_past_traj=True, filter_
 if __name__ == "__main__":
     args = default_argument_parser().parse_args()
     #main(args, save_bboxes=True, save_trajs=True, hide_past_traj=True, build_dataset=True, sequence="irl_kitchen_gripper_detection_cam_1_seq_050")
-    #main(args, save_trajs=True, hide_past_traj=False, sequence="irl_kitchen_gripper_detection_cam_1_seq_000")
-    main(args, save_trajs=True, hide_past_traj=False)
+    #main(args, save_trajs=True, hide_past_traj=False, sequence="irl_kitchen_gripper_detection_cam_1_seq_042")
+    #main(args, save_trajs=True, hide_past_traj=False)
+    main(args, build_dataset=True)
