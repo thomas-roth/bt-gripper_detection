@@ -1,0 +1,3 @@
+[submodule "projects/GripperDetection_calvin/calvin_env"]
+	path = projects/GripperDetection_calvin/calvin_env
+	url = git@github.com:mees/calvin_env.git

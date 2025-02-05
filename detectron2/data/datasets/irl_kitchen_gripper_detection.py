@@ -10,8 +10,8 @@ from detectron2.utils.file_io import PathManager
 
 CLASS_NAMES = ["gripper"]
 NUM_SEQUNECES = 242
-CAM_1_PATH = "/home/temp_store/troth/data/irl_kitchen_gripper_detection/cam_1"
-CAM_2_PATH = "/home/temp_store/troth/data/irl_kitchen_gripper_detection/cam_2"
+CAM_1_PATH = "/home/temp_store/troth/data/irl_kitchen_gripper_detection_calvin/cam_1"
+CAM_2_PATH = "/home/temp_store/troth/data/irl_kitchen_gripper_detection_calvin/cam_2"
 
 
 def load_kitchen_instances(file_ids: list, dirname: str):
@@ -63,7 +63,7 @@ def register_irl_kitchen_gripper_detection(name: str, file_ids: list, dirname: s
     MetadataCatalog.get(name).set(
         thing_classes=list(CLASS_NAMES), dirname=dirname, split=split
     )
-    MetadataCatalog.get(name).evaluator_type = "irl_kitchen_gripper_detection"
+    MetadataCatalog.get(name).evaluator_type = "irl_kitchen_calvin"
 
 
 def register_all_irl_kitchen_gripper_detection():
@@ -71,7 +71,7 @@ def register_all_irl_kitchen_gripper_detection():
     subdirnames = []
     for cam_id in [1, 2]:
         for i in range(NUM_SEQUNECES):
-            with PathManager.open(f"/home/temp_store/troth/data/irl_kitchen_gripper_detection/file_ids/cam_{cam_id}_seq_{i:03d}.txt") as file:
+            with PathManager.open(f"/home/temp_store/troth/data/irl_kitchen_gripper_detection_calvin/file_ids/cam_{cam_id}_seq_{i:03d}.txt") as file:
                 file_ids.append(np.loadtxt(file, dtype=str))
                 subdirnames.append(str.join("_", file_ids[-1][0].split("_")[:-4]))
 

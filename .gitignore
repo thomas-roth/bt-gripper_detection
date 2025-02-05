@@ -18,6 +18,7 @@ _ext
 *.pyd
 *.so
 *.dll
+.eggs/
 *.egg-info/
 build/
 dist/
