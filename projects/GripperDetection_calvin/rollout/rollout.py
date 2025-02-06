@@ -10,7 +10,7 @@ from pytorch_lightning import Callback, LightningModule, Trainer
 import torch
 import torch.distributed as dist
 
-from projects.GripperDetection_calvin.data.base_dataset import get_validation_window_size
+from projects.GripperDetection_calvin.datasets.base_dataset import get_validation_window_size
 from projects.GripperDetection_calvin.rollout.rollout_video import RolloutVideo
 from projects.GripperDetection_calvin.utils.utils import get_portion_of_batch_ids
 

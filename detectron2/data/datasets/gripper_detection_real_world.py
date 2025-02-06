@@ -14,9 +14,9 @@ CAM_1_PATH = "/home/temp_store/troth/data/irl_kitchen_gripper_detection_calvin/c
 CAM_2_PATH = "/home/temp_store/troth/data/irl_kitchen_gripper_detection_calvin/cam_2"
 
 
-def load_kitchen_instances(file_ids: list, dirname: str):
+def load_real_world_instances(file_ids: list, dirname: str):
     """
-    Load kitchen detection annotations to Detectron2 format.
+    Load real world detection annotations to Detectron2 format.
     
     Args:
         file_ids: list of file ids (timestamp + sequence task + sequence length)
@@ -58,15 +58,15 @@ def load_kitchen_instances(file_ids: list, dirname: str):
     return data
 
 
-def register_irl_kitchen_gripper_detection(name: str, file_ids: list, dirname: str, split: str):
-    DatasetCatalog.register(name, lambda: load_kitchen_instances(file_ids, dirname))
+def register_real_world_gripper_detection(name: str, file_ids: list, dirname: str, split: str):
+    DatasetCatalog.register(name, lambda: load_real_world_instances(file_ids, dirname))
     MetadataCatalog.get(name).set(
         thing_classes=list(CLASS_NAMES), dirname=dirname, split=split
     )
-    MetadataCatalog.get(name).evaluator_type = "irl_kitchen_calvin"
+    MetadataCatalog.get(name).evaluator_type = "gripper_detection_real_world"
 
 
-def register_all_irl_kitchen_gripper_detection():
+def register_all_real_world_gripper_detection():
     file_ids = []
     subdirnames = []
     for cam_id in [1, 2]:
@@ -75,9 +75,9 @@ def register_all_irl_kitchen_gripper_detection():
                 file_ids.append(np.loadtxt(file, dtype=str))
                 subdirnames.append(str.join("_", file_ids[-1][0].split("_")[:-4]))
 
-    splits_cam_1 = [(f"irl_kitchen_gripper_detection_cam_1_seq_{i:03d}", file_ids[i], f"{CAM_1_PATH}/{subdirnames[i]}", f"cam_1_seq_{i:03d}") for i in range(NUM_SEQUNECES)]
-    splits_cam_2 = [(f"irl_kitchen_gripper_detection_cam_2_seq_{i:03d}", file_ids[NUM_SEQUNECES + i], f"{CAM_2_PATH}/{subdirnames[NUM_SEQUNECES + i]}", f"cam_2_seq_{i:03d}") for i in range(NUM_SEQUNECES)]
+    splits_cam_1 = [(f"gripper_detection_real_world_cam_1_seq_{i:03d}", file_ids[i], f"{CAM_1_PATH}/{subdirnames[i]}", f"cam_1_seq_{i:03d}") for i in range(NUM_SEQUNECES)]
+    splits_cam_2 = [(f"gripper_detection_real_world_cam_2_seq_{i:03d}", file_ids[NUM_SEQUNECES + i], f"{CAM_2_PATH}/{subdirnames[NUM_SEQUNECES + i]}", f"cam_2_seq_{i:03d}") for i in range(NUM_SEQUNECES)]
     SPLITS = splits_cam_1 + splits_cam_2
 
     for name, file_ids, dirname, split in SPLITS:
-        register_irl_kitchen_gripper_detection(name, file_ids, dirname, split)
+        register_real_world_gripper_detection(name, file_ids, dirname, split)

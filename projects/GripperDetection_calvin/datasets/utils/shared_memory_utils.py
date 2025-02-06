@@ -13,7 +13,7 @@ import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from projects.GripperDetection_calvin.data.utils.episode_utils import lookup_naming_pattern
+from projects.GripperDetection_calvin.datasets.utils.episode_utils import lookup_naming_pattern
 
 log = logging.getLogger(__name__)
 

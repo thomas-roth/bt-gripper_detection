@@ -10,7 +10,7 @@ from termcolor import colored
 from detectron2.config.config import get_cfg
 from detectron2.data.build import build_detection_test_loader
 from detectron2.data.catalog import MetadataCatalog
-from detectron2.data.datasets.irl_kitchen_gripper_detection import register_all_irl_kitchen_gripper_detection
+from detectron2.data.datasets.gripper_detection_calvin import register_all_calvin_gripper_detection
 from detectron2.engine.defaults import default_argument_parser, default_setup
 from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
@@ -161,7 +161,7 @@ def eval_sequence(cfg, model, sequence: str, save_bboxes=False, save_trajs=False
 def main(args, save_bboxes=False, save_trajs=False, hide_past_traj=True, filter_no_gripper_detected=True, build_dataset=False, sequence=None):
     cfg = setup_cfg(args)
 
-    register_all_irl_kitchen_gripper_detection()
+    register_all_calvin_gripper_detection()
 
     if sequence == None:
         # eval all sequences
@@ -180,7 +180,7 @@ def main(args, save_bboxes=False, save_trajs=False, hide_past_traj=True, filter_
             for i in tqdm(range(NUM_SEQUENCES_ALL), total=NUM_SEQUENCES_ALL, desc=f"Building dataset for cam_{cam_id}" if build_dataset
                           else f"Evaluating sequences for cam_{cam_id}"):
                 
-                curr_sequence = f"irl_kitchen_gripper_detection_cam_{cam_id}_seq_{i:03d}"
+                curr_sequence = f"gripper_detection_calvin_cam_{cam_id}_seq_{i:03d}"
                 
                 if build_dataset:
                     dataset = eval_sequence(cfg, models[cam_id-1], curr_sequence, save_bboxes, save_trajs, hide_past_traj, filter_no_gripper_detected,
@@ -215,7 +215,7 @@ def main(args, save_bboxes=False, save_trajs=False, hide_past_traj=True, filter_
 
 if __name__ == "__main__":
     args = default_argument_parser().parse_args()
-    #main(args, save_bboxes=True, save_trajs=True, hide_past_traj=True, build_dataset=True, sequence="irl_kitchen_gripper_detection_cam_1_seq_050")
-    #main(args, save_trajs=True, hide_past_traj=False, sequence="irl_kitchen_gripper_detection_cam_1_seq_042")
+    #main(args, save_bboxes=True, save_trajs=True, hide_past_traj=True, build_dataset=True, sequence="gripper_detection_calvin_cam_1_seq_050")
+    #main(args, save_trajs=True, hide_past_traj=False, sequence="gripper_detection_calvin_cam_1_seq_042")
     #main(args, save_trajs=True, hide_past_traj=False)
     main(args, build_dataset=True)

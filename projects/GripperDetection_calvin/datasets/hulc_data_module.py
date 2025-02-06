@@ -10,8 +10,8 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import torchvision
 
-from projects.GripperDetection_calvin.data.utils.episode_utils import load_dataset_statistics
-from projects.GripperDetection_calvin.data.utils.shared_memory_utils import load_shm_lookup, save_shm_lookup, SharedMemoryLoader
+from projects.GripperDetection_calvin.datasets.utils.episode_utils import load_dataset_statistics
+from projects.GripperDetection_calvin.datasets.utils.shared_memory_utils import load_shm_lookup, save_shm_lookup, SharedMemoryLoader
 
 logger = logging.getLogger(__name__)
 DEFAULT_TRANSFORM = OmegaConf.create({"train": None, "val": None})
@@ -101,8 +101,6 @@ class HulcDataModule(pl.LightningDataModule):
                         saturation=tuple(transform.saturation),
                     )
                 else:
-                    if transform._target_ == "lfp.utils.transforms.NormalizeVector":
-                        transform._target_ = "mode.utils.transforms.NormalizeVector"
                     instantiated_transform = hydra.utils.instantiate(transform)
                 cam_transforms.append(instantiated_transform)
             self.train_transforms[cam] = cam_transforms
@@ -110,8 +108,6 @@ class HulcDataModule(pl.LightningDataModule):
         self.val_transforms = {cam: []}
         for cam in transforms.val:
             for transform in transforms.val[cam]:
-                if transform._target_ == "lfp.utils.transforms.NormalizeVector":
-                        transform._target_ = "mode.utils.transforms.NormalizeVector"
                 hydra.utils.instantiate(transform)
         
         self.train_transforms = {key: torchvision.transforms.Compose(val) for key, val in self.train_transforms.items()}

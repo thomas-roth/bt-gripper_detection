@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 
 SOURCE = "/home/temp_store/troth/data/kit_irl_real_kitchen/lang/mdt_annotations"
+# DEST = "/home/temp_store/troth/data/irl_kitchen_gripper_detection_real_world"
 DEST = "/home/temp_store/troth/data/irl_kitchen_gripper_detection_calvin"
 
 NUM_SEQUNECES = 242

@@ -4,7 +4,8 @@ from natsort import natsorted
 
 from tqdm import tqdm
 
-
+# SOURCE = "/home/temp_store/troth/outputs/gripper_detection_real_world/eval"
+# DEST = "/home/temp_store/troth/outputs/gripper_detection_real_world/eval/traj_gifs"
 SOURCE = "/home/temp_store/troth/outputs/gripper_detection_calvin/eval"
 DEST = "/home/temp_store/troth/outputs/gripper_detection_calvin/eval/traj_gifs"
 

@@ -8,7 +8,7 @@ import pyhash
 import torch
 from torch.utils.data import Dataset
 
-from projects.GripperDetection_calvin.data.utils.episode_utils import (
+from projects.GripperDetection_calvin.datasets.utils.episode_utils import (
     get_state_info_dict,
     process_actions,
     process_depth,

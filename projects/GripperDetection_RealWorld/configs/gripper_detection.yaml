@@ -9,9 +9,9 @@ INPUT:
 
 DATASETS:
   # cam_1
-  TRAIN: ("irl_kitchen_gripper_detection_cam_1_seq_000", "irl_kitchen_gripper_detection_cam_1_seq_049", "irl_kitchen_gripper_detection_cam_1_seq_063", "irl_kitchen_gripper_detection_cam_1_seq_096")
+  TRAIN: ("gripper_detection_real_world_cam_1_seq_000", "gripper_detection_real_world_cam_1_seq_049", "gripper_detection_real_world_cam_1_seq_063", "gripper_detection_real_world_cam_1_seq_096")
   # cam_2
-  #TRAIN: ("irl_kitchen_gripper_detection_cam_2_seq_000", "irl_kitchen_gripper_detection_cam_2_seq_068")
+  #TRAIN: ("gripper_detection_real_world_cam_2_seq_000", "gripper_detection_real_world_cam_2_seq_068")
 
 SOLVER:
   MAX_ITER: 1200

@@ -20,7 +20,7 @@ include_dirs = [
 library_dirs = []
 libraries = []
 extra_compile_args = ["-msse4.2", "-maes", "-mavx", "-mavx2", "-march=native"]
-extra_link_args = []
+extra_link_args = ['-L/usr/']
 
 if os.name != "nt":
     macros += [

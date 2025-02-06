@@ -8,8 +8,8 @@ from collections import defaultdict
 
 import numpy as np
 
-from projects.GripperDetection_calvin.data.base_dataset import BaseDataset
-from projects.GripperDetection_calvin.data.utils.episode_utils import lookup_naming_pattern
+from projects.GripperDetection_calvin.datasets.base_dataset import BaseDataset
+from projects.GripperDetection_calvin.datasets.utils.episode_utils import lookup_naming_pattern
 
 logger = logging.getLogger(__name__)
 

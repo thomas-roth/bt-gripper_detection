@@ -8,10 +8,8 @@ INPUT:
   MIN_SIZE_TEST: 500
 
 DATASETS:
-  # cam_1
-  TRAIN: ("irl_kitchen_gripper_detection_cam_1_seq_000", "irl_kitchen_gripper_detection_cam_1_seq_049", "irl_kitchen_gripper_detection_cam_1_seq_063", "irl_kitchen_gripper_detection_cam_1_seq_096")
-  # cam_2
-  #TRAIN: ("irl_kitchen_gripper_detection_cam_2_seq_000", "irl_kitchen_gripper_detection_cam_2_seq_068")
+  TRAIN: ("gripper_detection_calvin_training", )
+  TEST: ("gripper_detection_calvin_validation", )
 
 SOLVER:
   MAX_ITER: 1200

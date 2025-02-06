@@ -1,6 +1,6 @@
 defaults:
   - transforms: calvin_transforms
-_target_: projects.GripperDetecion_calvin.data.hulc_data_module.HulcDataModule
+_target_: projects.GripperDetection_calvin.datasets.hulc_data_module.HulcDataModule
 _recursive_: false
 
 root_data_dir: ${root_data_dir}
@@ -26,8 +26,8 @@ proprioception_dims:
 
 datasets:
   lang_dataset: 
-    _target_: projects.GripperDetecion_calvin.data.disk_dataset.ExtendedDiskDataset
-    # _target_: mode.datasets.disk_dataset.BalancedLabeledSubsetDataset 
+    _target_: projects.GripperDetection_calvin.datasets.disk_dataset.ExtendedDiskDataset
+    # _target_: projects.GripperDetection_calvin.datasets.disk_dataset.BalancedLabeledSubsetDataset 
     # min_samples_per_task: 20  # Adjust based on your needs
      #subset_percentage: 0.1
     # subset_seed: ${seed}
