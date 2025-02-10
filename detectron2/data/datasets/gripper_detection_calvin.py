@@ -32,10 +32,23 @@ def load_calvin_split(eps_path: str, ep_start_id: int, ep_end_id: int):
 
         ep_data = np.load(ep_path)
 
-        img_info = {
+        # TODO?: store images
+
+        img_info_cam_1 = {
             "file_name": "",# full path
-            "height": 0,
-            "width": 0,
+            "height": 200,
+            "width": 200,
+            "image_id": ep_number,
+            "annotations": [{
+                "bbox": [],
+                "bbox_mode": BoxMode.XYXY_ABS,
+                "category_id": 0, # only one class
+            }],
+        }
+        img_info_cam_2 = {
+            "file_name": "",# full path
+            "height": 84,
+            "width": 84,
             "image_id": ep_number,
             "annotations": [{
                 "bbox": [],
@@ -44,7 +57,8 @@ def load_calvin_split(eps_path: str, ep_start_id: int, ep_end_id: int):
             }],
         }
 
-        data.append(img_info)
+        data.append(img_info_cam_1)
+        data.append(img_info_cam_2)
 
     return data
 
@@ -117,8 +131,7 @@ def register_all_calvin_gripper_detection():
 
 
 def register_calvin_datamodule(datamodule):
-    
-    for split in ["trainng", "validation"]:
+    for split in ["training", "validation"]:
         name = f"gripper_detection_calvin_{split}"
         dirname = datamodule.training_dir if split == "training" else datamodule.val_dir
         dataloader = datamodule.train_dataloader if split == "training" else datamodule.val_dataloader
@@ -127,4 +140,4 @@ def register_calvin_datamodule(datamodule):
         MetadataCatalog.get(name).set(
             thing_classes=list(CLASS_NAMES), dirname=dirname, split=split
         )
-        MetadataCatalog.get(name).evaluator_type = "gripper_detection_calvin"
+        MetadataCatalog.get(name).evaluator_type = name

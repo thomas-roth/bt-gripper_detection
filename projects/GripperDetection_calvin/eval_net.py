@@ -1,8 +1,11 @@
 import datetime
 import os
+from pathlib import Path
 import pickle
 import shutil
 import cv2
+import hydra
+from omegaconf import DictConfig
 import torch
 from tqdm import tqdm
 from termcolor import colored
@@ -10,8 +13,8 @@ from termcolor import colored
 from detectron2.config.config import get_cfg
 from detectron2.data.build import build_detection_test_loader
 from detectron2.data.catalog import MetadataCatalog
-from detectron2.data.datasets.gripper_detection_calvin import register_all_calvin_gripper_detection
-from detectron2.engine.defaults import default_argument_parser, default_setup
+from detectron2.data.datasets.gripper_detection_calvin import register_calvin_datamodule
+from detectron2.engine.defaults import default_setup
 from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.utils.visualizer import Visualizer
@@ -20,10 +23,10 @@ from projects.GripperDetection_calvin.utils.build_qwen2vl_dataset import build_d
 from projects.GripperDetection_calvin.utils.gen_traj_gifs import gen_traj_gifs
 
 
-TRAINED_MODEL_PATH_CAM_1 = "/home/temp_store/troth/outputs/gripper_detection_calvin/models/2025_01_13-16_58_35/model_final.pth"
-TRAINED_MODEL_PATH_CAM_2 = "/home/temp_store/troth/outputs/gripper_detection_calvin/models/2025_01_12-13_57_08/model_final.pth"
-ROBOT_STATE_ANNOTATIONS_PATH = "/home/temp_store/troth/data/irl_kitchen_gripper_detection_calvin/robot_state_annotations/"
-NUM_SEQUENCES_ALL = 242
+TRAINED_MODEL_PATH_CAM_1 = "/home/temp_store/troth/outputs/gripper_detection_calvin/models/2025_01_13-16_58_35/model_final.pth" #FIXME
+TRAINED_MODEL_PATH_CAM_2 = "/home/temp_store/troth/outputs/gripper_detection_calvin/models/2025_01_12-13_57_08/model_final.pth" #FIXME
+ROBOT_STATE_ANNOTATIONS_PATH = "/home/temp_store/troth/data/irl_kitchen_gripper_detection_calvin/robot_state_annotations/" #FIXME?
+NUM_SEQUENCES_ALL = 242 #FIXME
 
 
 def setup_cfg(args):
@@ -32,7 +35,15 @@ def setup_cfg(args):
     """
 
     cfg = get_cfg()
-    cfg.merge_from_file("projects/GripperDetection_calvin/configs/gripper_detection.yaml")
+    cfg.merge_from_file(f"{str(Path(__file__).absolute().parent)}/configs/gripper_detection.yaml")
+
+    cfg.SAVE_BBOXES = True #False
+    cfg.SAVE_TRAJS = True #False
+    cfg.HIDE_PAST_TRAJ = True
+    cfg.FILTER_NO_GRIPPER_DETECTED = True
+    cfg.BUILD_DATASET = False
+    cfg.SEQUENCE = "gripper_detection_calvin_validation" #None
+
     cfg.freeze()
     default_setup(cfg, args)
 
@@ -58,7 +69,7 @@ def _merge_bbox_instances(instances):
     return instances
 
 
-def _visualize_and_save_bboxes(cfg, test_data_loader, outputs):
+def _visualize_and_save_bboxes(cfg, env, test_data_loader, outputs):
     seq_name = str.join('_', str(test_data_loader.dataset.__getitem__(0)['image_id']).split('_')[:-4])
     os.makedirs(cfg.OUTPUT_DIR + f"/eval/{seq_name}/bboxes", exist_ok=True)
 
@@ -136,9 +147,8 @@ def _build_dataset(cfg, test_data_loader, outputs, dataset_for_seq, curr_datetim
     return dataset_for_seq
 
 
-def eval_sequence(cfg, model, sequence: str, save_bboxes=False, save_trajs=False, hide_past_traj=True, filter_no_gripper_detected=True,
-                  build_dataset=False, dataset=None, curr_datetime=None):
-    test_data_loader = build_detection_test_loader(cfg, sequence)
+def eval_sequence(cfg_gd, model, env, sequence: str, dataset=None, curr_datetime=None):
+    test_data_loader = build_detection_test_loader(cfg_gd, sequence)
 
     outputs = []
     with torch.no_grad():
@@ -148,74 +158,74 @@ def eval_sequence(cfg, model, sequence: str, save_bboxes=False, save_trajs=False
             
             torch.cuda.empty_cache()
     
-    if save_bboxes:
-        _visualize_and_save_bboxes(cfg, test_data_loader, outputs)
+    if cfg_gd.SAVE_BBOXES:
+        _visualize_and_save_bboxes(cfg_gd, env, test_data_loader, outputs)
 
-    if save_trajs:
-        _build_and_save_trajs(cfg, test_data_loader, outputs, hide_past_traj, filter_no_gripper_detected)
+    if cfg_gd.SAVE_TRAJS:
+        _build_and_save_trajs(cfg_gd, test_data_loader, outputs)
     
-    if build_dataset:
-        return _build_dataset(cfg, test_data_loader, outputs, dataset, curr_datetime)
+    if cfg_gd.BUILD_DATASET:
+        return _build_dataset(cfg_gd, test_data_loader, outputs, dataset, curr_datetime)
 
 
-def main(args, save_bboxes=False, save_trajs=False, hide_past_traj=True, filter_no_gripper_detected=True, build_dataset=False, sequence=None):
-    cfg = setup_cfg(args)
+@hydra.main(config_path="calvin_conf", config_name="calvin")
+def main(cfg_calvin: DictConfig):
+    cfg_gd = setup_cfg(args=None)
 
-    register_all_calvin_gripper_detection()
+    datamodule = hydra.utils.instantiate(cfg_calvin.datamodule)
+    register_calvin_datamodule(datamodule)
 
-    if sequence == None:
+    if cfg_gd.SEQUENCE == None:
         # eval all sequences
 
         models = []
-        if build_dataset:
+        if cfg_gd.BUILD_DATASET:
             dataset = []
             curr_datetime = datetime.datetime.now().strftime('%Y_%m_%d-%H_%M_%S')
 
         for cam_id in [1, 2]:
-            model = build_model(cfg)
+            model = build_model(cfg_gd)
             DetectionCheckpointer(model).load(TRAINED_MODEL_PATH_CAM_1 if cam_id == 1 else TRAINED_MODEL_PATH_CAM_2)
             model.eval()
             models.append(model)
 
-            for i in tqdm(range(NUM_SEQUENCES_ALL), total=NUM_SEQUENCES_ALL, desc=f"Building dataset for cam_{cam_id}" if build_dataset
+            for i in tqdm(range(NUM_SEQUENCES_ALL), total=NUM_SEQUENCES_ALL, desc=f"Building dataset for cam_{cam_id}" if cfg_gd.BUILD_DATASET
                           else f"Evaluating sequences for cam_{cam_id}"):
                 
                 curr_sequence = f"gripper_detection_calvin_cam_{cam_id}_seq_{i:03d}"
+                env = hydra.utils.instantiate(cfg_calvin, curr_sequence)
                 
-                if build_dataset:
-                    dataset = eval_sequence(cfg, models[cam_id-1], curr_sequence, save_bboxes, save_trajs, hide_past_traj, filter_no_gripper_detected,
-                                            build_dataset, dataset, curr_datetime)
+                if cfg_gd.BUILD_DATASET:
+                    dataset = eval_sequence(cfg_gd, models[cam_id-1], env, curr_sequence, dataset, curr_datetime)
                 else:
-                    eval_sequence(cfg, models[cam_id-1], curr_sequence, save_bboxes, save_trajs, hide_past_traj, filter_no_gripper_detected)
+                    eval_sequence(cfg_gd, models[cam_id-1], env, curr_sequence)
         
-        if save_trajs:
+        if cfg_gd.SAVE_TRAJS:
             gen_traj_gifs()
         
-        if build_dataset:
-            save_dataset(cfg.OUTPUT_DIR, dataset, curr_datetime)
+        if cfg_gd.BUILD_DATASET:
+            save_dataset(cfg_gd.OUTPUT_DIR, dataset, curr_datetime)
     else:
         # eval single sequence
 
-        assert type(sequence) == str
+        assert type(cfg_gd.SEQUENCE) == str
 
-        if build_dataset:
+        if cfg_gd.BUILD_DATASET:
             dataset = []
             curr_datetime = datetime.datetime.now().strftime('%Y_%m_%d-%H_%M_%S')
 
-        model = build_model(cfg)
-        DetectionCheckpointer(model).load(TRAINED_MODEL_PATH_CAM_1 if "cam_1" in sequence else TRAINED_MODEL_PATH_CAM_2)
+        model = build_model(cfg_gd)
+        DetectionCheckpointer(model).load(TRAINED_MODEL_PATH_CAM_1 if "cam_1" in cfg_gd.SEQUENCE else TRAINED_MODEL_PATH_CAM_2)
         model.eval()
 
-        if build_dataset:
-            dataset = eval_sequence(cfg, model, sequence, save_bboxes, save_trajs, hide_past_traj, build_dataset, dataset, curr_datetime)
-            save_dataset(cfg.OUTPUT_DIR, dataset, curr_datetime)
+        env = hydra.utils.instantiate(cfg_calvin, cfg_gd.SEQUENCE)
+
+        if cfg_gd.BUILD_DATASET:
+            dataset = eval_sequence(cfg_gd, model, env, dataset, curr_datetime)
+            save_dataset(cfg_gd.OUTPUT_DIR, dataset, curr_datetime)
         else:
-            eval_sequence(cfg, model, sequence, save_bboxes, save_trajs, hide_past_traj)
+            eval_sequence(cfg_gd, model, env)
 
 
 if __name__ == "__main__":
-    args = default_argument_parser().parse_args()
-    #main(args, save_bboxes=True, save_trajs=True, hide_past_traj=True, build_dataset=True, sequence="gripper_detection_calvin_cam_1_seq_050")
-    #main(args, save_trajs=True, hide_past_traj=False, sequence="gripper_detection_calvin_cam_1_seq_042")
-    #main(args, save_trajs=True, hide_past_traj=False)
-    main(args, build_dataset=True)
+    main()

@@ -1,10 +1,10 @@
 defaults:
   - /callbacks/rollout_lh/tasks@tasks: new_playtable_tasks
   - /annotations@val_annotations: new_playtable_validation
-_target_: mode.rollout.rollout_long_horizon.RolloutLongHorizon
+_target_: projects.GripperDetection_calvin.rollout.rollout_long_horizon.RolloutLongHorizon
 _recursive_: false
 env_cfg:
-  _target_: mode.wrappers.hulc_wrapper.HulcWrapper
+  _target_: projects.GripperDetection_calvin.wrappers.hulc_wrapper.HulcWrapper
 skip_epochs: ${rollout_lh_skip_epochs}
 rollout_freq: 5
 num_videos: 0
